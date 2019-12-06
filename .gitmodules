@@ -4,3 +4,6 @@
 [submodule "Fill_Missing_Segments"]
 	path = Fill_Missing_Segments
 	url = https://github.com/brianmanderson/Fill_Missing_Segments.git
+[submodule "Make_Single_Images"]
+	path = Make_Single_Images
+	url = https://github.com/brianmanderson/Make_Single_Images.git

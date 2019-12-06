@@ -4,6 +4,7 @@ __author__ = 'Brian M Anderson'
 from Dicom_RT_and_Images_to_Mask.Image_Array_And_Mask_From_Dicom_RT import Dicom_to_Imagestack, os, plot_scroll_Image, np, plt, copy
 from Fill_Missing_Segments.Fill_In_Segments_sitk import Fill_Missing_Segments, remove_non_liver
 import SimpleITK as sitk
+import pandas as pd
 
 
 def remove_56_78(annotations):
@@ -21,19 +22,35 @@ def remove_56_78(annotations):
             else:
                 annotations[i, ..., 7] = 0
     return annotations
+
+def write_csv(csv_path,dictionary):
+    fid = open(csv_path,'w+')
+    fid.write('MRN,Exam,Iteration\n')
+    for MRN in dictionary.keys():
+        for exam in dictionary[MRN]:
+            iteration = dictionary[MRN][exam]
+            fid.write('{},{},{}\n'.format(MRN,exam,iteration))
+    fid.close()
+    return None
+
 Fill_Missing_Segments_Class = Fill_Missing_Segments()
 base_path = r'K:\Morfeus\BMAnderson\CNN\Data\Data_Liver\Liver_Segments\Images'
 data_path = r'K:\Morfeus\BMAnderson\CNN\Data\Data_Liver\Liver_Segments\New_Niftii_Arrays'
 images_desc = 'Redone_Liver_Segments'
+csv_path = os.path.join('..','Ordering.csv')
 add = 'CT'
 MRNs = os.listdir(base_path)
+out_pickle = {}
 for MRN in MRNs:
     print(MRN)
+    out_pickle[MRN] = {}
     for exam in os.listdir(os.path.join(base_path,MRN)):
         print(exam)
         path = os.path.join(base_path,MRN,exam)
         text_files = [i for i in os.listdir(path) if i.find('Iteration') != -1]
         iteration = text_files[0].split('Iteration_')[-1][:-4]
+        out_pickle[MRN][exam] = iteration
+        write_csv(csv_path,out_pickle)
         image_path = os.path.join(data_path, add,'Overall_Data_' + images_desc + '_' + str(iteration) + '.nii.gz')
         if os.path.exists(image_path):
             continue
