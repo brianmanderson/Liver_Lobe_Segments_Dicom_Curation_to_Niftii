@@ -3,6 +3,7 @@ __author__ = 'Brian M Anderson'
 
 from Dicom_RT_and_Images_to_Mask.Image_Array_And_Mask_From_Dicom_RT import Dicom_to_Imagestack, os, plot_scroll_Image, np, plt, copy
 from Fill_Missing_Segments.Fill_In_Segments_sitk import Fill_Missing_Segments, remove_non_liver
+import SimpleITK as sitk
 
 
 def remove_56_78(annotations):
@@ -22,12 +23,20 @@ def remove_56_78(annotations):
     return annotations
 Fill_Missing_Segments_Class = Fill_Missing_Segments()
 base_path = r'K:\Morfeus\BMAnderson\CNN\Data\Data_Liver\Liver_Segments\Images'
+data_path = r'K:\Morfeus\BMAnderson\CNN\Data\Data_Liver\Liver_Segments\New_Niftii_Arrays'
+images_desc = 'Redone_Liver_Segments'
+add = 'CT'
 MRNs = os.listdir(base_path)
 for MRN in MRNs:
     print(MRN)
     for exam in os.listdir(os.path.join(base_path,MRN)):
         print(exam)
         path = os.path.join(base_path,MRN,exam)
+        text_files = [i for i in os.listdir(path) if i.find('Iteration') != -1]
+        iteration = text_files[0].split('Iteration_')[-1][:-4]
+        image_path = os.path.join(data_path, add,'Overall_Data_' + images_desc + '_' + str(iteration) + '.nii.gz')
+        if os.path.exists(image_path):
+            continue
         if 'new_RS' in os.listdir(path):
             continue
         Contour_Names = ['Liver'] + ['Liver_Segment_{}'.format(i) for i in range(1,9)]
@@ -58,7 +67,17 @@ for MRN in MRNs:
             spacing = Dicom_Reader.annotation_handle.GetSpacing()
             annotations = Fill_Missing_Segments_Class.make_distance_map(annotations, ground_truth,spacing=spacing)
             differences.append(np.abs(np.sum(previous_iteration[ground_truth==1]-np.argmax(annotations,axis=-1)[ground_truth==1])))
-        Dicom_Reader.with_annotations(annotations,os.path.join(path,'new_RS'),ROI_Names=Out_Contour_names)
+        # Dicom_Reader.with_annotations(annotations,os.path.join(path,'new_RS'),ROI_Names=Out_Contour_names)
+        new_annotations = sitk.GetImageFromArray(np.argmax(annotations,axis=-1).astype('int8'))
+        new_annotations.SetSpacing(Dicom_Reader.dicom_handle.GetSpacing())
+        new_annotations.SetOrigin(Dicom_Reader.dicom_handle.GetOrigin())
+        new_annotations.SetDirection(Dicom_Reader.dicom_handle.GetDirection())
+        if not os.path.exists(os.path.join(data_path, add)):
+            os.makedirs(os.path.join(data_path, add))
+        sitk.WriteImage(Dicom_Reader.dicom_handle,image_path)
+        annotation_path = os.path.join(data_path, add, 'Overall_mask_' + images_desc + '_y' + str(iteration) + '.nii.gz')
+        sitk.WriteImage(new_annotations,annotation_path)
+
 xxx = 1
 
 # case.PatientModel.StructureSets['CT 15'].RoiSurfaceToSurfaceDistanceBasedOnDT(ReferenceRoiName='GTV',TargetRoiName='recurrence')
