@@ -31,9 +31,19 @@ def make_distribution_file():
         iterations = [i.split('_')[-1].split('.')[0] for i in files if i.find('Overall_Data') == 0]
         for iteration in iterations:
             data_dict[int(iteration)] = ext
-    data_dict = {'Folder':data_dict}
-    save_obj(os.path.join('..','train_test_validation_distribution.pkl'),data_dict)
-    data_frame = pd.DataFrame(data_dict)
+    data_dict_out = {'MRN':[],'Exam':[],'Iteration':[],'Folder':[]}
+    image_path = r'K:\Morfeus\BMAnderson\CNN\Data\Data_Liver\Liver_Segments\Images'
+    for MRN in os.listdir(image_path):
+        for exam in os.listdir(os.path.join(image_path,MRN)):
+            iteration = [i for i in os.listdir(os.path.join(image_path,MRN,exam)) if i.find('Iteration') != -1][0].split('_')[-1]
+            iteration = iteration.split('.')[0]
+            data_dict_out['MRN'].append(MRN)
+            data_dict_out['Exam'].append(exam)
+            data_dict_out['Iteration'].append(int(iteration))
+            data_dict_out['Folder'].append(data_dict[int(iteration)])
+
+    save_obj(os.path.join('..','train_test_validation_distribution.pkl'),data_dict_out)
+    data_frame = pd.DataFrame(data_dict_out)
     data_frame.to_excel(os.path.join('..','train_test_validation_distribution.xlsx'))
 
 
