@@ -6,4 +6,5 @@ from Distribute_Patients import distribute_patients_by_folder
 
 
 distribute_patients_by_folder()  # This will make sure the distribution file exists and break the patients up
-main(path=r'K:\Morfeus\BMAnderson\CNN\Data\Data_Liver\Liver_Segments\New_Niftii_Arrays\CT')
+main(path=r'K:\Morfeus\BMAnderson\CNN\Data\Data_Liver\Liver_Segments\New_Niftii_Arrays\CT',
+     desired_output_spacing=(None,None,5.0))
