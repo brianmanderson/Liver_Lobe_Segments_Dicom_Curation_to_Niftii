@@ -7,3 +7,6 @@
 [submodule "Make_Single_Images"]
 	path = Make_Single_Images
 	url = https://github.com/brianmanderson/Make_Single_Images.git
+[submodule "AW_Liver_Lobes_To_Raystation"]
+	path = AW_Liver_Lobes_To_Raystation
+	url = https://github.com/brianmanderson/AW_Liver_Lobes_To_Raystation.git
