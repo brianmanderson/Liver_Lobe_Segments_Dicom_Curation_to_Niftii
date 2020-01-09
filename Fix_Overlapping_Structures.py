@@ -45,7 +45,6 @@ class Fix_Missing_Segments_Class(object):
     def run_on_path(self, path):
         self.path = path
         self.Dicom_Reader.Make_Contour_From_directory(self.path)
-        self.iterate_mask()
 
     def write_output_as_RT(self, annotations=None):
         if annotations is None:
@@ -90,35 +89,62 @@ class Fix_Missing_Segments_Class(object):
                                        'Overall_mask_' + images_desc + '_y' + str(iteration) + '.nii.gz')
         sitk.WriteImage(new_annotations, annotation_path)
 
-def Fill_Segments():
+
+def turn_pandas_into_dictionary(pandas_file):
+    out_dict = {}
+    for i in range(len(pandas_file.columns)):
+        header_name = pandas_file.columns[i]
+        out_dict[header_name] = list(pandas_file[header_name])
+    return out_dict
+
+def Fill_Segments(base_path, data_path, images_desc, excel_file_path, write_data=False):
     Fill_Missing_Segments_Class = Fix_Missing_Segments_Class()
-    base_path = r'K:\Morfeus\BMAnderson\CNN\Data\Data_Liver\Liver_Segments\Images'
-    data_path = r'K:\Morfeus\BMAnderson\CNN\Data\Data_Liver\Liver_Segments\New_Niftii_Arrays'
-    images_desc = 'Redone_Liver_Segments'
-    csv_path = os.path.join('..','Ordering.csv')
+    excel_file = pd.read_excel(excel_file_path)
+    excel_file = turn_pandas_into_dictionary(excel_file)
     add = 'CT'
     MRNs = os.listdir(base_path)
-    out_pickle = {}
     for MRN in MRNs:
         print(MRN)
-        out_pickle[MRN] = {}
         for exam in os.listdir(os.path.join(base_path,MRN)):
             print(exam)
             path = os.path.join(base_path,MRN,exam)
             text_files = [i for i in os.listdir(path) if i.find('Iteration') != -1]
-            iteration = text_files[0].split('Iteration_')[-1][:-4]
-            out_pickle[MRN][exam] = iteration
-            write_csv(csv_path,out_pickle)
-            image_path = os.path.join(data_path, add,'Overall_Data_' + images_desc + '_' + str(iteration) + '.nii.gz')
-            if os.path.exists(image_path):
+            if text_files:
+                iteration = int(text_files[0].split('Iteration_')[-1][:-4])
+            elif int(MRN) in excel_file['MRN']:
+                indexes = np.where(np.asarray(excel_file['MRN'])==int(MRN))[0]
+                for index in indexes:
+                    if excel_file['Exam'][index] == exam:
+                        iteration = excel_file['Iteration'][index]
+                        break
+            else:
+                iteration = excel_file['Iteration'][-1]+1
+                excel_file['MRN'].append(int(MRN))
+                excel_file['Exam'].append(exam)
+                excel_file['Iteration'].append(iteration)
+                excel_file['Folder'].append('')
+                excel_file['Comments'].append(np.nan)
+            iteration_index = excel_file['Iteration'].index(iteration)
+            folder = excel_file['Folder'][iteration_index]
+            if folder == 'Deleted':
                 continue
-            if 'new_RS' in os.listdir(path):
+            write_out_path = os.path.join(data_path, add)
+            if folder in ['Train','Test','Validation']:
+                write_out_path = os.path.join(write_out_path, folder)
+                image_path = os.path.join(write_out_path,
+                                          'Overall_Data_' + images_desc + '_' + str(iteration) + '.nii.gz')
+            else:
+                image_path = os.path.join(write_out_path,
+                                          'Overall_Data_' + images_desc + '_' + str(iteration) + '.nii.gz')
+            if os.path.exists(image_path):
                 continue
             Fill_Missing_Segments_Class.run_on_path(path)
             Fill_Missing_Segments_Class.iterate_mask()
             Fill_Missing_Segments_Class.write_output_as_RT()
-            out_path = os.path.join(data_path,add)
-            Fill_Missing_Segments_Class.write_output_as_nifti(out_path,images_desc,iteration)
+            if 'new_RS' in os.listdir(path): # Created the RT, time to write it out
+                Fill_Missing_Segments_Class.write_output_as_nifti(write_out_path,images_desc,iteration)
+                df = pd.DataFrame(excel_file)
+                df.to_excel(excel_file_path,index=False)
 
 
 if __name__ == '__main__':
