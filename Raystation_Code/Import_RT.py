@@ -21,3 +21,5 @@ for study in studies:
     series += patient_db.QuerySeriesFromPath(Path=check_path,SearchCriterias=study)
 patient.ImportDataFromPath(Path=check_path, CaseName=case.CaseName,SeriesOrInstances=series,
                            AllowMismatchingPatientID=True)
+for file in os.listdir(check_path):
+    os.remove(os.path.join(check_path,file))

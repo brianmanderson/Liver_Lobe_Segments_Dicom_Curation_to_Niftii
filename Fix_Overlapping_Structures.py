@@ -59,22 +59,24 @@ class Fix_Missing_Segments_Class(object):
         annotations = self.Dicom_Reader.mask[..., (0, 2, 3, 4, 5, 6, 7, 8, 9)]
         overlap = np.sum(annotations,axis=-1)
         annotations[overlap>1] = 0
-        annotations[ground_truth==0] = 0
-        spacing = self.Dicom_Reader.annotation_handle.GetSpacing()
-        re_organized_spacing = spacing[-1::-1]
-        differences = [0,np.inf]
-        index = 0
-        while np.abs(differences[-1] - differences[-2]) > 50 and index < 15:
-            index += 1
-            print('Iterating {}'.format(index))
-            previous_iteration = copy.deepcopy(np.argmax(annotations,axis=-1))
-            annotations = remove_56_78(annotations)
-            for i in range(1, annotations.shape[-1]):
-                annotations[..., i] = remove_non_liver(annotations[..., i], do_3D=False, do_2D=True,min_area=10,spacing=re_organized_spacing)
-            spacing = self.Dicom_Reader.annotation_handle.GetSpacing()
-            annotations = self.Fill_Missing_Segments_Class.make_distance_map(annotations, ground_truth,spacing=spacing)
-            differences.append(np.abs(np.sum(previous_iteration[ground_truth==1]-np.argmax(annotations,axis=-1)[ground_truth==1])))
-        self.final_annotations = annotations
+        self.final_annotations = self.Fill_Missing_Segments_Class.iterate_annotations(annotations,ground_truth,
+                                                                                      spacing=self.Dicom_Reader.annotation_handle.GetSpacing())
+        # annotations[ground_truth==0] = 0
+        # spacing = self.Dicom_Reader.annotation_handle.GetSpacing()
+        # re_organized_spacing = spacing[-1::-1]
+        # differences = [0,np.inf]
+        # index = 0
+        # while np.abs(differences[-1] - differences[-2]) > 50 and index < 15:
+        #     index += 1
+        #     print('Iterating {}'.format(index))
+        #     previous_iteration = copy.deepcopy(np.argmax(annotations,axis=-1))
+        #     annotations = remove_56_78(annotations)
+        #     for i in range(1, annotations.shape[-1]):
+        #         annotations[..., i] = remove_non_liver(annotations[..., i], do_3D=False, do_2D=True,min_area=10,spacing=re_organized_spacing)
+        #     spacing = self.Dicom_Reader.annotation_handle.GetSpacing()
+        #     annotations = self.Fill_Missing_Segments_Class.make_distance_map(annotations, ground_truth,spacing=spacing)
+        #     differences.append(np.abs(np.sum(previous_iteration[ground_truth==1]-np.argmax(annotations,axis=-1)[ground_truth==1])))
+        # self.final_annotations = annotations
 
     def write_output_as_nifti(self, out_path, images_desc, iteration):
         new_annotations = sitk.GetImageFromArray(np.argmax(self.final_annotations, axis=-1).astype('int8'))
